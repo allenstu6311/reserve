@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <link rel="stylesheet" href="https://unpkg.com/view-ui-plus/dist/styles/viewuiplus.css"> -->
+    <link rel="stylesheet" href="./reverse.css">
+    <link rel="stylesheet" href="//unpkg.com/element-plus/dist/index.css" />
+    <title>Document</title>
+</head>
+
+<body>
+    <div id="app">
+        <div class="container">
+            <!-- 月曆 -->
+            <div class="clendar">
+                <div class="year">
+                    <pre @click="preNum(1)"><</pre>
+                    <span>{{year}}</span>
+                    <pre @click="nextNum(1)">></pre>
+                </div>
+                <div class="month">
+
+                    <pre @click="preNum(2)"><</pre>
+                    <span>{{month}}月</span>
+                    <pre @click="nextNum(2)">></pre>
+                </div>
+
+                <ul class="week">
+                    <li>日</li>
+                    <li>一</li>
+                    <li>二</li>
+                    <li>三</li>
+                    <li>四</li>
+                    <li>五</li>
+                    <li>六</li>
+                </ul>
+
+                <ul class="day-list">
+                    <li v-for="(item,index) in day">
+                        <p v-if="item>0  " :class="{today:new Date().getDate()==item &&
+                                 year==new Date().getFullYear() && 
+                                 new Date().getMonth()+1==month,
+                                 isHoliday:holiday.some(u=>u==item),
+                                 something:reverse.some(v=>v.registerTime[0]==year && v.registerTime[1]==month &&
+                                 v.registerTime[2]==item),
+                                 fucusDay:fucusDay==item
+                            
+                        }" @click="toRegister(item);fucusDay=item">
+                            {{item}} </p>
+                        <div class="festival" v-for="v in description">
+                            <span class="description" v-if="v.date==item"
+                                :class="{ isHoliday:v}">{{v.description}}</span>
+                        </div>
+                    </li>
+                </ul>
+                <!-- =====================存入燈箱 -->
+                <transition name="el-fade-in">
+                    <div class="light-box" v-if="showBox">
+                        <form action="">
+                            <div class="title">
+                                <h3>預約登記</h3>
+                            </div>
+                            <div class="">
+                                <label for="">教練:</label>
+                                <select name="" id="" v-model="type" @change="resetTime">
+                                    <option value="黃玄">黃玄</option>
+                                    <option value="俊彥">俊彥</option>
+                                    <option value="宇俊">宇俊</option>
+                                </select>
+                            </div>
+                            <div class="">
+                                <label for="">日期:</label>
+                                <input type="text" v-model="time" disabled>
+                            </div>
+                            <div class="">
+                                <label for="">時間:</label>
+                                <select name="" id="" v-model="hour">
+                                    <option v-for="item in Available" :value="item">
+                                        <p>{{item}}</p>
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="">
+                                <label for="">備註:</label>
+                                <input type="text" v-model="post">
+                            </div>
+                            <div class="">
+                                <button type="button" @click="sendReverse">送出</button>
+                            </div>
+                            <div class="close-box" @click="showBox=false">
+                                <span>X</span>
+                            </div>
+                        </form>
+                    </div>
+                </transition>
+                <div class="reverse" @click="goResverse">
+                    <button class="reverse-btn">預約</button>
+                </div>
+            </div>
+            <!-- ======================預約表 -->
+            <div class="reverse-list">
+                <div class="" style="margin:20px 0">
+                    <span>當日教練:</span><select name="" id="" v-model="choseCoach" class='chose-coach'>
+                        <option v-for="item in coachList" :value="item">{{item}}</option>
+                    </select>
+                </div>
+                <table>
+                    <thead>
+                        <tr style=" background-color: rgb(239, 185, 183)">
+                            <th style="border:none">教練</th>
+                            <th style="border:none">日期</th>
+                            <th style="border:none">時間</th>
+                            <th style="border:none">預約</th>
+                            <th style="border:none">備註</th>
+                        </tr>
+                    </thead>
+                    <!-- v-if="reverse.some(item=>item.time==showTime)" -->
+                    <tbody>
+                        <tr v-for="(item,index) in reverse">
+                            <th v-if="choseCoach==item.type && showTime == item.time && year==item.registerTime[0]
+                                 && month==item.registerTime[1]
+                                 ">{{item.type}}</th>
+
+                            <th v-if="choseCoach==item.type && showTime == item.time && year==item.registerTime[0]
+                                && month==item.registerTime[1]
+                                ">{{item.time}}</th>
+                            <th v-if="choseCoach==item.type && showTime == item.time && year==item.registerTime[0]
+                                && month==item.registerTime[1]
+                                ">{{item.hour}}</th>
+                            <th v-if="choseCoach==item.type && showTime == item.time && year==item.registerTime[0]
+                                && month==item.registerTime[1]
+                                "><button @click="deleteReverse(item,index)">取消預約</button></th>
+                            <th v-if="choseCoach==item.type && showTime == item.time && year==item.registerTime[0]
+                                && month==item.registerTime[1]
+                                ">{{item.post}}</th>
+                        </tr>
+                        <!-- 選擇全部時的結果 -->
+                        <tr v-for="(item,index) in reverse">
+                            <th v-if="choseCoach == '全部' && showTime == item.time && year==item.registerTime[0]
+                                 && month==item.registerTime[1]
+                                 ">{{item.type}}</th>
+                            <th v-if="choseCoach == '全部' && showTime == item.time && year==item.registerTime[0]
+                                && month==item.registerTime[1]
+                                ">{{item.time}}</th>
+                            <th v-if="choseCoach == '全部' && showTime == item.time && year==item.registerTime[0]
+                                && month==item.registerTime[1]
+                                ">{{item.hour}}</th>
+                            <th v-if="choseCoach == '全部' && showTime == item.time && year==item.registerTime[0]
+                                && month==item.registerTime[1]
+                                "><button @click="deleteReverse(item,index)">取消預約</button></th>
+                            <th v-if="choseCoach == '全部' && showTime == item.time && year==item.registerTime[0]
+                                && month==item.registerTime[1]
+                                ">{{item.post}}</th>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <!-- 沒被預約的空格 -->
+                        <tr v-for="item in  10-reverse.filter(v=>v.time==showTime && v.type == choseCoach).length">
+                            <th style="padding:20px"></th>
+                            <th style="padding:20px"></th>
+                            <th style="padding:20px"></th>
+                            <th style="padding:20px"></th>
+                            <th style="padding:20px"></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script src="https://unpkg.com/vue@next"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://unpkg.com/view-ui-plus"></script>
+    <script src="//unpkg.com/element-plus"></script>
+
+    <script>
+        const APP = {
+            data() {
+                return {
+                    //月曆
+                    month: '',
+                    year: new Date().getFullYear(),
+                    day: [],
+                    holiday: [],
+                    description: [],
+                    date: [],
+                    //預約
+                    reverse: [],
+                    registerTime: [],
+                    id: '',
+                    type: '',//教練
+                    time: '',//日期
+                    post: '',//備註
+                    hour: '',//時間
+                    //燈箱
+                    showBox: false,
+                    //時間下拉選單
+                    timeList: [
+                        '10:00',
+                        '11:00',
+                        '12:00',
+                        '13:00',
+                        '14:00',
+                        '15:00',
+                        '16:00',
+                        '17:00',
+                        '18:00',
+                        '19:00',
+                    ],
+                    Available: [],//篩選後的時間
+                    //教練
+                    coach: [],
+                    coachList: ["全部", "黃玄", '俊彥', '宇俊'],
+                    choseCoach: '黃玄',
+                    //其他
+                    judge: [],//判斷時間不重複
+                    showTime: dayjs(new Date()).format('YYYY/MM/DD'),
+                    fucusDay: '',//被點到的日期
+                }
+            },
+            methods: {
+                getToDay() {//月曆
+                    this.day = []
+                    let first_day = new Date(this.year, this.month - 1, 1)
+                    for (let i = 0; i < this.monthDay[this.month - 1] + first_day.getDay(); i++) {
+                        this.day.push(i - first_day.getDay() + 1)
+                    }
+                    this.holidayApi()
+                },
+                toRegister(item) {//點選日期時就把資料準備好
+                    this.registerTime = []
+                    this.registerTime.push(this.year)
+                    this.registerTime.push(this.month)
+                    this.registerTime.push(item)
+
+                    this.judge = this.reverse.filter(v => v.registerTime[0] == this.year && v.registerTime[1] == this.month && v.registerTime[2] == item)
+                    this.resetTime()
+                    this.time = this.year + '/' + this.month + '/' + item
+                    this.showTime = this.time
+                },
+                goResverse() {//點預約時確認有沒有選日期
+                    if (this.time == '') {
+                        alert("尚未選取日期")
+                    } else {
+                        this.showBox = true
+                    }
+                },
+                resetTime() {//重新選教練時重置時間
+                    this.coach = this.reverse.filter(v => v.type == this.type && this.judge.some(u => u.registerTime[0] == v.registerTime[0] && u.registerTime[1] == v.registerTime[1] && u.registerTime[2] == v.registerTime[2]))
+
+
+                    if (this.coach.length) {
+                        let coachTime = this.timeList.filter(v => this.coach.some(u => v == u.hour))
+                        this.Available = this.timeList.filter(v => coachTime.indexOf(v) == -1)
+                    } else {
+                        this.Available = this.timeList
+                    }
+                },
+                sendReverse() {//確認預約
+                    let sure = confirm("確定送出?")
+                    if (sure) {
+                        this.reverse.push({
+                            id: this.reverse.length,
+                            type: this.type,
+                            time: this.time,
+                            hour: this.hour,
+                            post: this.post,
+                            registerTime: this.registerTime
+                        })
+                        this.setLocalStorage()
+                        this.orderByReverse()
+                        let sameTime = this.timeList.filter(v => this.reverse.some(u => v == u.hour))
+                        this.Available = this.timeList.filter(v => sameTime.indexOf(v) == -1)
+                        this.showBox = false
+                        this.time = ''
+                        this.type = ''
+                        this.post = ''
+                        this.hour = ''
+                        this.fucusDay = ''
+                    }
+                },
+                deleteReverse(item, index) {//取消預約
+                    let sure = confirm("確定取消?")
+                    if (sure) {
+                        this.reverse.splice(index, 1)
+                        this.setLocalStorage()
+                    }
+                },
+                setLocalStorage() {//存入local
+                    localStorage.setItem("reverse", JSON.stringify(this.reverse))
+                },
+                getreverse() {//拿local資料
+                    let list = localStorage.getItem('reverse')
+                    if (!list) return
+                    this.reverse = JSON.parse(list)
+                },
+                orderByReverse() {//所有預約的排序
+                    this.reverse.sort(function (a, b) {
+                        let orderA = a.hour[0] + a.hour[1]
+                        let orderB = b.hour[0] + b.hour[1]
+                        return orderA - orderB
+
+                    })
+                },
+                holidayApi() {//拿假日的資料
+                    if (new Date().getFullYear() == this.year) {
+                        fetch('./holiday.json')
+                            .then(res => res.json())
+                            .then(json => {
+
+                                this.holiday = json.filter(item => item.isHoliday == true)
+                                this.holiday = this.holiday.filter(item => dayjs(item.date).format('M') == this.month)
+                                this.holiday = this.holiday.map(item => dayjs(item.date).format('D'))
+
+                                this.description = json.filter(item => item.description)
+                                this.description = this.description.filter(item => dayjs(item.date).format('M') == this.month)
+                                this.date = this.description.map(item => dayjs(item.date).format('D'))
+                                for (let i = 0; i < this.date.length; i++) {
+                                    this.description[i].date = this.date[i]
+                                }
+                            })
+                    } else {
+                        fetch("https://cdn.jsdelivr.net/gh/ruyut/TaiwanCalendar/data/2023.json")
+                            .then(res => res.json())
+                            .then(json => {
+
+                                this.holiday = json.filter(item => item.isHoliday == true)
+                                this.holiday = this.holiday.filter(item => dayjs(item.date).format('M') == this.month)
+                                this.holiday = this.holiday.map(item => dayjs(item.date).format('D'))
+
+                                this.description = [...json].filter(item => item.description)
+                                this.description = this.description.filter(item => dayjs(item.date).format('M') == this.month)
+                                this.date = this.description.map(item => dayjs(item.date).format('D'))
+
+                                for (let i = 0; i < this.date.length; i++) {
+                                    this.description[i].date = this.date[i]
+                                }
+                            })
+
+                    }
+                },
+                preNum(num) {//上個月or年
+                    if (num == 2) {
+                        if (this.month <= 1) this.month = 12, this.year -= 1
+                        else this.month -= 1
+                        this.getToDay()
+
+                    } else {
+                        this.year -= 1
+                        this.getToDay()
+                    }
+
+                },
+                nextNum(num) {//下個月or年
+                    if (num == 2) {
+                        if (this.month >= 12) this.month = 1, this.year++
+                        else this.month++
+                        this.getToDay()
+                    } else {
+                        this.year++
+                        this.getToDay()
+                    }
+
+                }
+            },
+            created() {
+                this.getreverse()
+            },
+            computed: {
+                isLeapTear() {
+                    return (this.year % 4 === 0 && this.year % 100 !== 0 && this.year % 400 !== 0 || this.year % 100 === 0 && this.year % 400 === 0) ? 29 : 28
+                },
+                monthDay() {
+                    return [31, this.isLeapTear, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+                },
+            },
+            mounted() {
+                this.month = dayjs(new Date()).format('YYYY-MM-DD').split('-')[1]//拿這個月的月份
+                this.getToDay()
+                this.orderByReverse()
+            },
+        }
+        const app = Vue.createApp(APP)
+        app.mount("#app")
+    </script>
+</body>
+
+</html>
